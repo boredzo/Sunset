@@ -1,5 +1,11 @@
 #import "PRHDocument.h"
 
+@interface PRHDocument ()
+
+@property (unsafe_unretained) IBOutlet NSTextView *textView;
+
+@end
+
 @implementation PRHDocument
 
 - (id) init {
@@ -16,30 +22,49 @@
 
 - (void) windowControllerDidLoadNib:(NSWindowController *)aController {
 	[super windowControllerDidLoadNib:aController];
-	// Add any code here that needs to be executed once the windowController has loaded the document's window.
+
+	NSColor *pink = [NSColor colorWithCalibratedHue:300.0/360.0
+	                                     saturation:1.0
+	                                     brightness:1.0
+			                                  alpha:1.0];
+	NSColor *violet = [NSColor colorWithCalibratedHue:280.0/360.0
+	                                     saturation:1.0
+			                             brightness:1.0
+						                      alpha:1.0];
+	NSColor *bottomColor = pink;
+	NSColor *topColor = violet;
+	NSGradient *gradient = [[NSGradient alloc] initWithStartingColor:bottomColor endingColor:topColor];
+
+	self.textView.textColor = [NSColor whiteColor];
+	NSSize size = { 1.0, 10000.0 };
+	self.textView.backgroundColor = [NSColor colorWithPatternImage:[NSImage imageWithSize:size
+	                                                                              flipped:NO
+		                                                                   drawingHandler:^BOOL(NSRect dstRect) {
+			                                                                   [gradient drawFromPoint:NSZeroPoint
+			                                                                                   toPoint:(NSPoint){ 0.0, 64.0 }
+				                                                                               options:NSGradientDrawsAfterEndingLocation];
+			                                                                   return YES;
+		                                                                   }]];
 }
 
 + (BOOL) autosavesInPlace {
 	return YES;
 }
 
-- (NSData *)dataOfType:(NSString *)typeName error:(NSError **)outError
-{
-	// Insert code here to write your document to data of the specified type. If outError != NULL, ensure that you create and set an appropriate error when returning nil.
-	// You can also choose to override -fileWrapperOfType:error:, -writeToURL:ofType:error:, or -writeToURL:ofType:forSaveOperation:originalContentsURL:error: instead.
-	NSException *exception = [NSException exceptionWithName:@"UnimplementedMethod" reason:[NSString stringWithFormat:@"%@ is unimplemented", NSStringFromSelector(_cmd)] userInfo:nil];
-	@throw exception;
-	return nil;
+- (NSData *) dataOfType:(NSString *)typeName error:(NSError **)outError {
+	return [self.text dataUsingEncoding:NSUTF8StringEncoding];
 }
 
-- (BOOL)readFromData:(NSData *)data ofType:(NSString *)typeName error:(NSError **)outError
-{
-	// Insert code here to read your document from the given data of the specified type. If outError != NULL, ensure that you create and set an appropriate error when returning NO.
-	// You can also choose to override -readFromFileWrapper:ofType:error: or -readFromURL:ofType:error: instead.
-	// If you override either of these, you should also override -isEntireFileLoaded to return NO if the contents are lazily loaded.
-	NSException *exception = [NSException exceptionWithName:@"UnimplementedMethod" reason:[NSString stringWithFormat:@"%@ is unimplemented", NSStringFromSelector(_cmd)] userInfo:nil];
-	@throw exception;
-	return YES;
+- (BOOL) readFromData:(NSData *)data ofType:(NSString *)typeName error:(NSError **)outError {
+	self.text = [[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding];
+	bool success = (self.text != nil);
+	if (!success) {
+		if (outError) {
+			*outError = [NSError errorWithDomain:NSCocoaErrorDomain code:NSFileReadInapplicableStringEncodingError
+			                            userInfo:nil];
+		}
+	}
+	return success;
 }
 
 @end
